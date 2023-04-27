@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import TestCase, Client
 
-from posts.models import Post, Group
+from posts.models import Post, Group, Comment
 from posts.forms import PostForm
 
 User = get_user_model()
@@ -27,6 +27,7 @@ class PostsFormsTests(TestCase):
         cls.form = PostForm()
 
     def setUp(self):
+        self.guest_client = Client()
         self.author_client = Client()
         self.author_client.force_login(PostsFormsTests.user)
         self.post_arg = PostsFormsTests.post.id
@@ -71,5 +72,32 @@ class PostsFormsTests(TestCase):
         self.assertTrue(
             Post.objects.filter(
                 text__exact='Проверочный пост',
+            ).exists()
+        )
+
+    def test_comments_only_for_authorized(self):
+        """Проверка создания поста авторизированным пользователем
+         и его сохранение в БД"""
+        self.author_client.post(
+            reverse('posts:post_detail', args=[self.post_arg]),
+            data={'text': 'Проверочный комментарий', },
+            follow=True
+        )
+        self.assertTrue(
+            Comment.objects.filter(
+                text__exact='Проверочный комментарий',
+            ).exists()
+        )
+
+    def test_guests_cannt_comment(self):
+        """Проверка того, что пользователи не могут комментировать"""
+        self.guest_client.post(
+            reverse('posts:post_detail', args=[self.post_arg]),
+            data={'text': 'Проверочный комментарий', },
+            follow=True
+        )
+        self.assertFalse(
+            Comment.objects.filter(
+                text__exact='Проверочный комментарий',
             ).exists()
         )

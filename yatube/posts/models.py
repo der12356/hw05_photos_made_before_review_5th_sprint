@@ -7,8 +7,6 @@ User = get_user_model()
 class Post(models.Model):
     class Meta:
         ordering = ['-pub_date']
-        verbose_name = 'Пост'
-        verbose_name_plural = 'Посты'
 
     text = models.TextField(
         'Текст поста',
@@ -28,11 +26,11 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
         blank=True, null=True,
         related_name='posts',
-        verbose_name='Группа',
         help_text='Выберите группу'
     )
     image = models.ImageField(
         'Картинка',
+        help_text='Выберите картинку для поста',
         upload_to='posts/',
         blank=True
     )
@@ -48,3 +46,26 @@ class Group(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(
+        'Post',
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    text = models.TextField(
+        'Текст комментария',
+        help_text='Введите ваш комментарий'
+    )
+    created = models.DateTimeField(
+        'Дата публикации', auto_now_add=True
+    )
+
+    def __str__(self) -> str:
+        return self.text[:50]
