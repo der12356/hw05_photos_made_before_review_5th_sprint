@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import TestCase, Client
@@ -53,7 +55,7 @@ class PostsURLTests(TestCase):
                     url_args = url_full[1]
                     response = self.guest_client.get(reverse(
                         url, args=url_args))
-                self.assertEqual(response.status_code, 200,
+                self.assertEqual(response.status_code, HTTPStatus.OK,
                                  f'Ошибка статуса в {url}')
                 self.assertTemplateUsed(response, template,
                                         f'Ошибка шаблона в {url}')
@@ -61,34 +63,47 @@ class PostsURLTests(TestCase):
     def test_404_url(self):
         """Страница 404 работает как надо."""
         response = self.guest_client.get('/notexist/yes/no/')
-        self.assertEqual(response.status_code, 404, 'страница 404 не работает')
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND,
+                         'страница 404 не работает')
 
     def test_create_new_post_url(self):
         """Проверка работы и шаблона страницы создания нового поста
          и не имеют ли доступ к ней гости"""
         response = self.authorized_client.get('/create/')
-        self.assertEqual(response.status_code, 200, ('Пользователи не могут '
-                                                     'создать посты!'))
+        self.assertEqual(response.status_code, HTTPStatus.OK,
+                         ('Пользователи не могут создать посты!'))
         self.assertTemplateUsed(response, 'posts/create_post.html',
                                 ('Ошибка шаблона при создании поста'))
         response = self.guest_client.get('/create/')
-        self.assertEqual(response.status_code, 302, ('Гости могут создавать '
-                                                     'посты!'))
+        self.assertEqual(response.status_code, HTTPStatus.FOUND,
+                         ('Гости могут создавать посты!'))
 
     def test_edit_post_url(self):
         """Проверка работы страницы редактирования поста и не имеют ли к ней
          доступ гости и не авторы поста"""
+# Проверка при пользователе, авторе поста
         response = self.author_client.get(reverse('posts:post_edit',
                                                   args=[self.post_arg]))
-        self.assertEqual(response.status_code, 200, ('Автор не может '
-                                                     'изменить свой пост!'))
+        self.assertEqual(response.status_code, HTTPStatus.OK,
+                         ('Автор не может изменить свой пост!'))
         self.assertTemplateUsed(response, 'posts/create_post.html',
                                 ('Ошибка шаблона при создании поста'))
+# Проверка при пользователе, анонимном госте сайта
         response = self.guest_client.get(reverse('posts:post_edit',
                                                  args=[self.post_arg]))
-        self.assertEqual(response.status_code, 302, ('Гости могут '
-                                                     'изменять посты!'))
+        self.assertEqual(response.status_code, HTTPStatus.FOUND,
+                         ('Гости могут изменять посты!'))
+        expected_redirect = '/auth/login/?next=/posts/1/edit/'
+        self.assertRedirects(response, expected_redirect, status_code=302,
+                             target_status_code=200)
+# Проверка при авторизованном пользователе, но не авторе поста
         response = self.authorized_client.get(reverse('posts:post_edit',
                                                       args=[self.post_arg]))
-        self.assertEqual(response.status_code, 302, ('Пользователи могут '
-                                                     'изменять чужие посты!'))
+        self.assertEqual(response.status_code, HTTPStatus.FOUND,
+                         ('Пользователи могут изменять чужие посты!'))
+        expected_redirect = reverse('posts:post_detail', args=[self.post_arg])
+        self.assertRedirects(response,
+                             expected_redirect,
+                             status_code=302,
+                             target_status_code=200
+                             )

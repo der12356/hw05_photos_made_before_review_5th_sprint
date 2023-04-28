@@ -19,6 +19,11 @@ class PostsFormsTests(TestCase):
             slug='test',
             description='Тестовое описание',
         )
+        cls.group_2 = Group.objects.create(
+            title='Тостова группа',
+            slug='tosts',
+            description='Группа любителей тостов',
+        )
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый пост',
@@ -32,6 +37,8 @@ class PostsFormsTests(TestCase):
         self.author_client.force_login(PostsFormsTests.user)
         self.post_arg = PostsFormsTests.post.id
         self.user_arg = PostsFormsTests.user.username
+        self.group_arg = PostsFormsTests.group.slug
+        self.group_2_arg = PostsFormsTests.group_2.slug
 
     def test_correct_post_creation_forms(self):
         """Тесты на проверку правильности формы создания постов"""
@@ -53,13 +60,16 @@ class PostsFormsTests(TestCase):
                 text__exact='Проверочный пост',
             ).exists()
         )
+        new_post = Post.objects.latest('id')
+        self.assertEqual(new_post.author, PostsFormsTests.user)
+        self.assertEqual(new_post.group, PostsFormsTests.group)
 
     def test_correct_post_edit_forms(self):
         """Тесты на проверку правильности формы редактирования постов"""
         posts_count = Post.objects.count()
         post = {
             'text': 'Проверочный пост',
-            'group': PostsFormsTests.group.id,
+            'group': PostsFormsTests.group_2.id,
         }
         response = self.author_client.post(
             reverse('posts:post_edit', args=[self.post_arg]),
@@ -68,15 +78,30 @@ class PostsFormsTests(TestCase):
         )
         self.assertRedirects(response, reverse('posts:post_detail',
                                                args=[self.post_arg]))
-        self.assertEqual(Post.objects.count(), posts_count)
+        self.assertEqual(Post.objects.count(), posts_count,
+                         'Отредактированный пост сохранился как новый')
         self.assertTrue(
             Post.objects.filter(
                 text__exact='Проверочный пост',
-            ).exists()
+            ).exists(), ('Отредактированный пост не сохранился в БД')
+        )
+        old_group_response = self.author_client.get(
+            reverse('posts:group_list', args=[self.group_arg])
+        )
+        self.assertEqual(
+            old_group_response.context['page_obj'].paginator.count, 0,
+            ('В старой группе не удалился редактируемый пост')
+        )
+        old_group_response = self.author_client.get(
+            reverse('posts:group_list', args=[self.group_2_arg])
+        )
+        self.assertEqual(
+            old_group_response.context['page_obj'].paginator.count, 1,
+            ('В новой группе не сохранился редактируемый пост')
         )
 
     def test_comments_only_for_authorized(self):
-        """Проверка создания поста авторизированным пользователем
+        """Проверка создания комментария авторизированным пользователем
          и его сохранение в БД"""
         self.author_client.post(
             reverse('posts:post_detail', args=[self.post_arg]),
@@ -90,7 +115,7 @@ class PostsFormsTests(TestCase):
         )
 
     def test_guests_cannt_comment(self):
-        """Проверка того, что пользователи не могут комментировать"""
+        """Проверка того, что гости не могут комментировать"""
         self.guest_client.post(
             reverse('posts:post_detail', args=[self.post_arg]),
             data={'text': 'Проверочный комментарий', },
