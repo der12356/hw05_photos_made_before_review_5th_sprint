@@ -4,22 +4,21 @@ from django.contrib.auth.decorators import login_required
 
 from .models import Post, Group, Comment
 from .forms import PostForm, CommentForm
-from .utils import paginator, pagin_page
+from .utils import pagin_page
 
 
 def index(request):
-    post_list = Post.objects.all().order_by('-pub_date')
+    post_list = Post.objects.all()
     page_obj = pagin_page(post_list, request.GET.get('page'))
     contents = {
         'page_obj': page_obj,
-        'text_desc': 'Последние обновления на сайте'
     }
     return render(request, 'posts/index.html', contents,)
 
 
 def groups(request, slug):
     group = get_object_or_404(Group, slug=slug)
-    post_list = group.posts.all().order_by('-pub_date')
+    post_list = group.posts.all()
     page_obj = pagin_page(post_list, request.GET.get('page'))
     contents = {
         'group': group,
@@ -30,9 +29,8 @@ def groups(request, slug):
 
 def profile(request, username):
     user_obj = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author_id__exact=user_obj
-                                    ).order_by('-pub_date')
-    user_num_of_posts = paginator(post_list).count
+    post_list = user_obj.posts.all()
+    user_num_of_posts = user_obj.posts.count()
     page_obj = pagin_page(post_list, request.GET.get('page'))
     context = {
         'page_obj': page_obj,
@@ -44,8 +42,6 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    author_num_posts = Post.objects.filter(author_id__exact=post.author
-                                           ).count()
     comments = Comment.objects.filter(
         post_id__exact=post_id).order_by('-created')
     form = PostForm(
@@ -55,7 +51,7 @@ def post_detail(request, post_id):
         add_comment(request, post_id)
     context = {
         'post': post,
-        'author_num_posts': author_num_posts,
+        'author_num_posts': post.author.posts.count(),
         'comments': comments,
         'form': form
     }

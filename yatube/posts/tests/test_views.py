@@ -1,3 +1,4 @@
+from itertools import islice
 import tempfile
 import shutil
 
@@ -76,58 +77,66 @@ class PaginatorViewsTest(TestCase):
             slug='test',
             description='Тестовое описание',
         )
-        test_posts_texts = [
-            'Текст1', 'Текст2', 'Текст3', 'Текст4', 'Текст5', 'Текст6',
-            'Текст7', 'Текст8', 'Текст9', 'Текст10', 'Текст11', 'Текст12',
-            'Текст13',
-        ]
-        for text in test_posts_texts:
-            cls.post = Post.objects.create(
-                author=cls.user,
-                text=text,
-                group=cls.group
-            )
+        batch_size = 13
+        objs = (Post(
+            author=cls.user,
+            text='Тест %s' % i,
+            group=cls.group
+        ) for i in range(batch_size))
+        while True:
+            batch = list(islice(objs, batch_size))
+            if not batch:
+                break
+            Post.objects.bulk_create(batch, batch_size)
 
     def setUp(self):
         self.guest_client = Client()
         self.group_arg = PaginatorViewsTest.group.slug
         self.user_arg = PaginatorViewsTest.user.username
+        self.num_of_posts_3 = 3
+        self.num_of_posts_10 = 10
 
     def test_paginator_first_page_10_posts_index(self):
         """"Проверка паджинатора на главной странице"""
         response = self.guest_client.get(reverse('posts:index'))
-        self.assertEqual(len(response.context['page_obj']), 10)
+        self.assertEqual(len(response.context['page_obj']),
+                         self.num_of_posts_10)
 
     def test_paginator_second_page_3_posts_index(self):
         """"Проверка паджинатора на второй странице Index'а"""
         response = self.guest_client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(len(response.context['page_obj']), 3)
+        self.assertEqual(len(response.context['page_obj']),
+                         self.num_of_posts_3)
 
     def test_paginator_first_page_10_posts_group(self):
         """"Проверка паджинатора на первой странице групп"""
         response = self.guest_client.get(reverse('posts:group_list',
                                                  args=[self.group_arg]))
-        self.assertEqual(len(response.context['page_obj']), 10)
+        self.assertEqual(len(response.context['page_obj']),
+                         self.num_of_posts_10)
 
     def test_paginator_second_page_3_posts_group(self):
         """"Проверка паджинатора на второй странице групп"""
         response = self.guest_client.get(reverse('posts:group_list',
                                                  args=[self.group_arg])
                                          + '?page=2')
-        self.assertEqual(len(response.context['page_obj']), 3)
+        self.assertEqual(len(response.context['page_obj']),
+                         self.num_of_posts_3)
 
     def test_paginator_first_page_10_posts_profile(self):
         """"Проверка паджинатора на первой странице профиля"""
         response = self.guest_client.get(reverse('posts:profile',
                                                  args=[self.user_arg]))
-        self.assertEqual(len(response.context['page_obj']), 10)
+        self.assertEqual(len(response.context['page_obj']),
+                         self.num_of_posts_10)
 
     def test_paginator_second_page_3_posts_profile(self):
         """"Проверка паджинатора на второй странице профиля"""
         response = self.guest_client.get(reverse('posts:profile',
                                                  args=[self.user_arg])
                                          + '?page=2')
-        self.assertEqual(len(response.context['page_obj']), 3)
+        self.assertEqual(len(response.context['page_obj']),
+                         self.num_of_posts_3)
 
 
 class ContextViewTest(TestCase):
@@ -142,29 +151,36 @@ class ContextViewTest(TestCase):
             title='Тестовая группа',
             slug='test',
             description='Тестовое описание',
-        )  # Создание 1-го поста для аргумента вью функций
+        )
+# Создание 1-го поста для аргумента вью функций
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Текст1',
+            text='Убер Тест',
             group=cls.group
-        )  # Создание постов с группой и автором
-        test_posts = [
-            'Текст2', 'Текст3', 'Текст4', 'Текст5',
-        ]
-        for text in test_posts:
-            cls.post_group = Post.objects.create(
-                author=cls.user,
-                text=text,
-                group=cls.group
-            )  # Создание постов с другим автором и без группы
-        test_posts_no_group = [
-            'ТекстБезГруппы1', 'ТекстБезГруппы2', 'ТекстБезГруппы3',
-        ]
-        for text in test_posts_no_group:
-            cls.post_no_group = Post.objects.create(
-                author=cls.user_two,
-                text=text,
-            )
+        )
+# Создание постов с группой и автором
+        batch_size = 4
+        objs = (Post(
+            author=cls.user,
+            text='Текст %s' % i,
+            group=cls.group
+        ) for i in range(batch_size))
+        while True:
+            batch = list(islice(objs, batch_size))
+            if not batch:
+                break
+            Post.objects.bulk_create(batch, batch_size)
+# Создание постов с другим автором и без группы
+        batch_size = 3
+        objs = (Post(
+            author=cls.user_two,
+            text='ТекстБезГруппы %s' % i,
+        ) for i in range(batch_size))
+        while True:
+            batch = list(islice(objs, batch_size))
+            if not batch:
+                break
+            Post.objects.bulk_create(batch, batch_size)
 
     def setUp(self):
         self.author_client = Client()
@@ -177,7 +193,8 @@ class ContextViewTest(TestCase):
         """"Проверка контекста на главной странице"""
         response = self.author_client.get(reverse('posts:index'))
         object = response.context['page_obj']
-        self.assertEqual(object.paginator.count, 8)
+        num_of_posts = 8
+        self.assertEqual(object.paginator.count, num_of_posts)
 
     def test_context_group_view(self):
         """"Проверка контекста на странице группы"""
@@ -202,7 +219,7 @@ class ContextViewTest(TestCase):
         response = self.author_client.get(reverse('posts:post_detail',
                                                   args=[self.post_arg]))
         post = response.context['post']
-        self.assertEqual(post.text, 'Текст1')
+        self.assertEqual(post.text, 'Убер Тест')
 
     def test_context_create_post_view(self):
         """Проверка контекста (формы) страницы создания поста"""
