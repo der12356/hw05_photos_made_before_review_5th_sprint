@@ -212,6 +212,18 @@ class ContextViewTest(TestCase):
         post = response.context['post']
         self.assertEqual(post.text, 'Убер Тест')
 
+# ТЕСТ 6 СПРИНТА
+    def test_new_comment_context_in_detail_view(self):
+        self.author_client.post(
+            reverse('posts:post_detail', args=[self.post_arg]),
+            data={'text': 'Проверочный комментарий', },
+        )
+        response = self.author_client.get(reverse('posts:post_detail',
+                                                  args=[self.post_arg]))
+        comment = response.context['comments']
+        self.assertEqual(comment[0].text, 'Проверочный комментарий')
+
+# ТЕСТЫ 5 СПРИНТА
     def test_context_create_post_view(self):
         """Проверка контекста (формы) страницы создания поста"""
         response = self.author_client.get(reverse('posts:post_create'))
