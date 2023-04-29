@@ -5,13 +5,6 @@ User = get_user_model()
 
 
 class Post(models.Model):
-    class Meta:
-        ordering = ['-pub_date']
-
-    def __str__(self):
-        text_length = 15
-        return self.text[:text_length]
-
     text = models.TextField(
         help_text='Введите текст поста',
         verbose_name='Текст поста'
@@ -41,11 +34,15 @@ class Post(models.Model):
         verbose_name='Фотография публикации'
     )
 
+    class Meta:
+        ordering = ['-pub_date']
+
+    def __str__(self):
+        text_length = 15
+        return self.text[:text_length]
+
 
 class Group(models.Model):
-    def __str__(self) -> str:
-        return self.title
-
     title = models.CharField(
         max_length=200,
         verbose_name='Название группы'
@@ -59,11 +56,11 @@ class Group(models.Model):
         verbose_name='Описание группы'
     )
 
+    def __str__(self) -> str:
+        return self.title
+
 
 class Comment(models.Model):
-    def __str__(self) -> str:
-        return self.text[:50]
-
     post = models.ForeignKey(
         'Post',
         on_delete=models.CASCADE,
@@ -84,3 +81,7 @@ class Comment(models.Model):
         auto_now_add=True,
         verbose_name='Дата создания комментария'
     )
+
+    def __str__(self) -> str:
+        text_length = 50
+        return self.text[:text_length]

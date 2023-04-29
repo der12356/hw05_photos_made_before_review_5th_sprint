@@ -92,11 +92,11 @@ class PostsFormsTests(TestCase):
             old_group_response.context['page_obj'].paginator.count, 0,
             ('В старой группе не удалился редактируемый пост')
         )
-        old_group_response = self.author_client.get(
+        new_group_response = self.author_client.get(
             reverse('posts:group_list', args=[self.group_2_arg])
         )
         self.assertEqual(
-            old_group_response.context['page_obj'].paginator.count, 1,
+            new_group_response.context['page_obj'].paginator.count, 1,
             ('В новой группе не сохранился редактируемый пост')
         )
 
@@ -114,7 +114,7 @@ class PostsFormsTests(TestCase):
             ).exists()
         )
 
-    def test_guests_cannt_comment(self):
+    def test_guests_cant_comment(self):
         """Проверка того, что гости не могут комментировать"""
         self.guest_client.post(
             reverse('posts:post_detail', args=[self.post_arg]),

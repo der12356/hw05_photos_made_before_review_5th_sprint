@@ -80,14 +80,11 @@ class PaginatorViewsTest(TestCase):
         batch_size = 13
         objs = (Post(
             author=cls.user,
-            text='Тест %s' % i,
+            text=f'Тест {i}',
             group=cls.group
         ) for i in range(batch_size))
-        while True:
-            batch = list(islice(objs, batch_size))
-            if not batch:
-                break
-            Post.objects.bulk_create(batch, batch_size)
+        batch = list(islice(objs, batch_size))
+        Post.objects.bulk_create(batch)
 
     def setUp(self):
         self.guest_client = Client()
@@ -162,25 +159,19 @@ class ContextViewTest(TestCase):
         batch_size = 4
         objs = (Post(
             author=cls.user,
-            text='Текст %s' % i,
+            text=f'Текст {i}',
             group=cls.group
         ) for i in range(batch_size))
-        while True:
-            batch = list(islice(objs, batch_size))
-            if not batch:
-                break
-            Post.objects.bulk_create(batch, batch_size)
+        batch = list(islice(objs, batch_size))
+        Post.objects.bulk_create(batch)
 # Создание постов с другим автором и без группы
         batch_size = 3
         objs = (Post(
             author=cls.user_two,
-            text='ТекстБезГруппы %s' % i,
+            text=f'ТекстБезГруппы {i}',
         ) for i in range(batch_size))
-        while True:
-            batch = list(islice(objs, batch_size))
-            if not batch:
-                break
-            Post.objects.bulk_create(batch, batch_size)
+        batch = list(islice(objs, batch_size))
+        Post.objects.bulk_create(batch)
 
     def setUp(self):
         self.author_client = Client()

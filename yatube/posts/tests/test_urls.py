@@ -94,8 +94,9 @@ class PostsURLTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.FOUND,
                          ('Гости могут изменять посты!'))
         expected_redirect = '/auth/login/?next=/posts/1/edit/'
-        self.assertRedirects(response, expected_redirect, status_code=302,
-                             target_status_code=200)
+        self.assertRedirects(response, expected_redirect,
+                             status_code=HTTPStatus.FOUND,
+                             target_status_code=HTTPStatus.OK)
 # Проверка при авторизованном пользователе, но не авторе поста
         response = self.authorized_client.get(reverse('posts:post_edit',
                                                       args=[self.post_arg]))
@@ -104,6 +105,5 @@ class PostsURLTests(TestCase):
         expected_redirect = reverse('posts:post_detail', args=[self.post_arg])
         self.assertRedirects(response,
                              expected_redirect,
-                             status_code=302,
-                             target_status_code=200
-                             )
+                             status_code=HTTPStatus.FOUND,
+                             target_status_code=HTTPStatus.OK)
